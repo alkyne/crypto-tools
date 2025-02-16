@@ -5,6 +5,8 @@ import websockets
 import requests
 
 THRESHOLD_USDT_DIFF = 3.5
+REVERSE_PREMIUM_THRESHOLD = -2
+OVER_PREMIUM_THRESHOLD = 3.5
 
 # Shared dictionary to store latest prices.
 price_data = {
@@ -13,12 +15,14 @@ price_data = {
     "trump_usdt": None,  # Binance trump/USDT
     "xrp_usdt": None,
     "doge_usdt": None,
+    "sol_usdt": None,
 
     "btc_krw": None,   # Upbit BTC/KRW
     "eth_krw": None,   # Upbit ETH/KRW
     "trump_krw": None,   # Upbit trump/KRW
     "xrp_krw": None,
     "doge_krw": None,
+    "sol_krw": None,
 
     "usdt_krw": None   # Upbit USDT/KRW
 }
@@ -41,7 +45,8 @@ async def print_prices(ticker):
         msg = f"[{now}] [{ticker.upper()}] diff: {diff:,.2f} ({ticker}_kimp: {calculated_kimp:,.2f}, USDT/KRW: {usdt_krw}, {ticker.upper()}/KRW: {upbit_krw:,})"
         print(msg)
 
-        if abs(diff) >= THRESHOLD_USDT_DIFF:
+        # if abs(diff) >= THRESHOLD_USDT_DIFF:
+        if diff <= REVERSE_PREMIUM_THRESHOLD or diff >= OVER_PREMIUM_THRESHOLD:
             # await send_telegram_message(msg)
             await write_file_message(msg)
 
@@ -97,7 +102,7 @@ async def upbit_ws():
     uri = "wss://api.upbit.com/websocket/v1"
     subscribe_msg = [
         {"ticket": "unique_ticket"},
-        {"type": "ticker", "codes": ["KRW-BTC", "KRW-ETH", "KRW-TRUMP", "KRW-XRP", "KRW-DOGE", "KRW-USDT"]}
+        {"type": "ticker", "codes": ["KRW-BTC", "KRW-ETH", "KRW-TRUMP", "KRW-XRP", "KRW-DOGE", "KRW-SOL", "KRW-USDT"]}
     ]
     async with websockets.connect(uri) as ws:
         await ws.send(json.dumps(subscribe_msg))
@@ -151,39 +156,40 @@ async def hyperliquid_ws():
 
         # Listen for messages indefinitely.
         while True:
-            message = await ws.recv()
             try:
+                message = await ws.recv()
                 data = json.loads(message)
-            except json.JSONDecodeError:
-                print("Received non-JSON message:", message)
-                continue
+                channel = data.get("channel")
+                # print (data)
+                
+                # Handle the subscription response message.
+                if channel == "subscriptionResponse":
+                    print("Subscription response received:", data)
+                
+                # Look for mid price updates.
+                elif channel == "allMids":
+                    # The data is expected in the format: { "data": { "mids": { "<symbol>": "<price>", ... } } }
+                    mids = data.get("data", {}).get("mids", {})
+                    # Depending on the API naming convention, the key might be "BTCUSDT", "BTC/USDT", etc.
+                    btc_price = mids.get("BTC")
+                    xrp_price = mids.get("XRP")
+                    trump_price = mids.get("TRUMP")
+                    sol_price = mids.get("SOL")
+                    # if btc_price is not None:
+                        # print("BTC/USDT Perp Price:", btc_price)
+                        # print("XRP/USDT Perp Price:", xrp_price)
+                        # print("TRUMP/USDT Perp Price:", trump_price)
+                    # else:
+                        # Optionally print if no BTC price is found.
+                        # print("BTC/USDT price not found in mids:", mids)
 
-            channel = data.get("channel")
-            # print (data)
-            
-            # Handle the subscription response message.
-            if channel == "subscriptionResponse":
-                print("Subscription response received:", data)
-            
-            # Look for mid price updates.
-            elif channel == "allMids":
-                # The data is expected in the format: { "data": { "mids": { "<symbol>": "<price>", ... } } }
-                mids = data.get("data", {}).get("mids", {})
-                # Depending on the API naming convention, the key might be "BTCUSDT", "BTC/USDT", etc.
-                btc_price = mids.get("BTC")
-                xrp_price = mids.get("XRP")
-                trump_price = mids.get("TRUMP")
-                # if btc_price is not None:
-                    # print("BTC/USDT Perp Price:", btc_price)
-                    # print("XRP/USDT Perp Price:", xrp_price)
-                    # print("TRUMP/USDT Perp Price:", trump_price)
-                # else:
-                    # Optionally print if no BTC price is found.
-                    # print("BTC/USDT price not found in mids:", mids)
-
-                price_data["btc_usdt"] = float(btc_price)
-                price_data["xrp_usdt"] = float(xrp_price)
-                price_data["trump_usdt"] = float(trump_price)
+                    price_data["btc_usdt"] = float(btc_price)
+                    price_data["xrp_usdt"] = float(xrp_price)
+                    price_data["trump_usdt"] = float(trump_price)
+                    price_data["sol_usdt"] = float(sol_price)
+            except Exception as e:
+                print("Hyperliquid error: ", e)
+                # continue
 
                 # await print_prices("btc")
 
