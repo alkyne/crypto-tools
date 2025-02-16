@@ -215,7 +215,10 @@ async def send_telegram_message(msg):
         print("Failed to send message:", response.text)
 
 async def write_file_message(msg):
-    f.write(msg + "\n")
+    # f = open("kimp_alert.txt", "a+")
+    # f.write(msg + "\n")
+    with open("kimp_alert.txt", "a+") as f:
+        f.write(msg + "\n")
 
 async def main():
     # Run both websocket connections concurrently.
@@ -223,5 +226,4 @@ async def main():
     await asyncio.gather(hyperliquid_ws(), upbit_ws())
 
 if __name__ == "__main__":
-    f = open("kimp_alert.txt", "a+")
     asyncio.run(main())
