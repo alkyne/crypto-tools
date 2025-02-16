@@ -11,10 +11,12 @@ price_data = {
     "btc_usdt": None,  # Binance BTC/USDT
     "eth_usdt": None,  # Binance ETH/USDT
     "trump_usdt": None,  # Binance trump/USDT
+    "xrp_usdt": None,
 
     "btc_krw": None,   # Upbit BTC/KRW
     "eth_krw": None,   # Upbit ETH/KRW
     "trump_krw": None,   # Upbit trump/KRW
+    "xrp_krw": None,
 
     "usdt_krw": None   # Upbit USDT/KRW
 }
@@ -53,7 +55,7 @@ async def binance_ws():
     Connects to Binance's combined websocket stream for BTC/USDT and ETH/USDT.
     """
     # uri = "wss://stream.binance.com:9443/stream?streams=btcusdt@ticker/ethusdt@ticker/glmusdt@ticker"
-    uri = "wss://fstream.binance.com/stream?streams=btcusdt@ticker/ethusdt@ticker/trumpusdt@ticker"
+    uri = "wss://fstream.binance.com/stream?streams=btcusdt@ticker/ethusdt@ticker/trumpusdt@ticker/xrpusdt@ticker"
     async with websockets.connect(uri) as ws:
         while True:
             try:
@@ -70,6 +72,9 @@ async def binance_ws():
                 elif stream == "trumpusdt@ticker":
                     price_data["trump_usdt"] = float(ticker_data.get("c"))
                     print_prices("trump")
+                elif stream == "xrpusdt@ticker":
+                    price_data["xrp_usdt"] = float(ticker_data.get("c"))
+                    print_prices("xrp")
                 # print_prices()
             except Exception as e:
                 print("Binance error:", e)
@@ -84,7 +89,7 @@ async def upbit_ws():
         # Subscribe to KRW-BTC, KRW-ETH, and KRW-USDT tickers.
         subscribe_msg = [
             {"ticket": "unique_ticket"},
-            {"type": "ticker", "codes": ["KRW-BTC", "KRW-ETH", "KRW-TRUMP", "KRW-USDT"]}
+            {"type": "ticker", "codes": ["KRW-BTC", "KRW-ETH", "KRW-TRUMP", "KRW-XRP", "KRW-USDT"]}
         ]
         await ws.send(json.dumps(subscribe_msg))
         while True:
