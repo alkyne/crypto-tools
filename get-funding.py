@@ -83,7 +83,7 @@ def print_funding_rates(funding_rates):
 
     print(f"Historical Funding Rates for {COIN}-USD:")
     print("-" * 60)
-    print(f"{'Timestamp':<30} {'Funding Rate (%)':<20} {"APR (%)":<20}")
+    print(f"{'Timestamp':<30} {'Funding Rate (%)':<20} {'APR (%)':<20}")
     print("-" * 60)
 
     for rate in funding_rates:
